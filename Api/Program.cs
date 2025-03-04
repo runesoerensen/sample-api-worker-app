@@ -1,35 +1,26 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Client;
+using Shared;
+using Shared.Messaging;
+using Shared.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddSingleton<IConnection>(sp =>
+var cloudAmqpUrl = Environment.GetEnvironmentVariable("CLOUDAMQP_URL");
+if (!string.IsNullOrEmpty(cloudAmqpUrl))
 {
-    var factory = new ConnectionFactory
-    {
-        Uri = new Uri(Environment.GetEnvironmentVariable("CLOUDAMQP_URL") ?? "amqp://guest:guest@localhost:5672")
-    };
-    return factory.CreateConnectionAsync().Result;
-});
+    builder.Configuration["ConnectionStrings:CloudAMQP"] = cloudAmqpUrl;
+}
+builder.Services.AddMessaging();
 var app = builder.Build();
 
-app.MapPost("/send-email", async (HttpContext context, IConnection rabbitMqConnection) =>
+app.MapPost("/send-email", async (HttpContext context, RabbitMqService rabbitMqService, [FromBody] EmailRequest emailRequest) =>
 {
-    var emailRequest = await JsonSerializer.DeserializeAsync<EmailRequest>(context.Request.Body);
-    if (emailRequest == null)
-    {
-        return Results.BadRequest();
-    }
-
-    using var channel = await rabbitMqConnection.CreateChannelAsync();
-    await channel.QueueDeclareAsync(queue: "email_queue", durable: true, exclusive: false, autoDelete: false);
-
-    var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailRequest));
-    await channel.BasicPublishAsync("", "email_queue", body);
+    await rabbitMqService.PublishAsync(emailRequest);
+    app.Logger.LogInformation("Email request queued");
 
     return Results.Accepted();
 });
 
 app.Run();
-
-record EmailRequest(string To, string Subject, string Body);
