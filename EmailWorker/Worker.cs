@@ -10,6 +10,8 @@ public class Worker(ILogger<Worker> logger, IConnection connection) : Background
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var channel = await connection.CreateChannelAsync();
+        await channel.QueueDeclareAsync(queue: "email_queue", durable: true, exclusive: false, autoDelete: false);
+
         var consumer = new AsyncEventingBasicConsumer(channel);
 
         consumer.ReceivedAsync += async (model, eventArgs) =>
