@@ -1,0 +1,51 @@
+{
+    "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "herokuDynoNameInput",
+            "type": "promptString",
+            "description": "Enter the specific Heroku Dyno name (e.g., web.1, worker.1):",
+            "default": "web.1",
+        }
+    ],
+    "configurations": [
+        {
+            "name": ".NET Core Attach (Heroku - Specify Dyno)",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "2",
+            "pipeTransport": {
+                "pipeProgram": "heroku",
+                "pipeArgs": [
+                    "ps:exec",
+                    "--ssh",
+                    "-d",
+                    "${input:herokuDynoNameInput}"
+                ],
+                "debuggerPath": "/app/vsdbg/vsdbg",
+                "pipeCwd": "${workspaceFolder}"
+            },
+            "sourceFileMap": {
+                "/app": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": ".NET Core Attach (Heroku - Default Dyno)",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "2",
+            "pipeTransport": {
+                "pipeProgram": "heroku",
+                "pipeArgs": [
+                    "ps:exec",
+                    "--ssh"
+                ],
+                "debuggerPath": "/app/vsdbg/vsdbg",
+                "pipeCwd": "${workspaceFolder}"
+            },
+            "sourceFileMap": {
+                "/app": "${workspaceFolder}"
+            }
+        }
+    ]
+}
