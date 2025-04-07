@@ -1,0 +1,55 @@
+<Project>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug' AND '$(PublishDir)' != ''">
+    <PathMap>$(SolutionDir)=/app/</PathMap>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <VsDbgInstallDir>$(MSBuildThisFileDirectory)vsdbg</VsDbgInstallDir>
+    <VsDbgExePath>$(VsDbgInstallDir)/vsdbg</VsDbgExePath>
+    <VsDbgLockDirPath>$(VsDbgInstallDir).lockdir</VsDbgLockDirPath>
+    <_HaveVsDbgLock>false</_HaveVsDbgLock>
+  </PropertyGroup>
+
+  <Target Name="CheckVsDbgConfiguration" BeforeTargets="Publish">
+    <Warning Condition="'$(Configuration)' != 'Debug'" Text="vsdbg installation requires the 'Debug' configuration. Installation will be skipped." />
+  </Target>
+
+  <Target Name="InstallVsDbgWithRobustLock" AfterTargets="Publish" DependsOnTargets="AcquireVsDbgLock;PerformVsDbgInstallIfAcquired;ReleaseVsDbgLock" />
+
+  <Target Name="AcquireVsDbgLock">
+    <Message Text="[vsdbg] Attempting to acquire lock: $(VsDbgLockDirPath)" Importance="low" />
+    <MakeDir Directories="$(VsDbgLockDirPath)" Condition="!Exists($(VsDbgLockDirPath))" ContinueOnError="WarnAndContinue">
+       <Output TaskParameter="DirectoriesCreated" ItemName="_VsDbgLockDirCreatedItems" />
+    </MakeDir>
+    <PropertyGroup>
+       <_HaveVsDbgLock Condition="'@(_VsDbgLockDirCreatedItems)' != ''">true</_HaveVsDbgLock>
+       <_HaveVsDbgLock Condition="'$(_HaveVsDbgLock)' == ''">false</_HaveVsDbgLock>
+    </PropertyGroup>
+    <Message Text="[vsdbg] Lock acquired successfully by this process." Importance="normal" Condition="'$(_HaveVsDbgLock)' == 'true'" />
+    <Message Text="[vsdbg] Lock possibly held by another process." Importance="normal" Condition="'$(_HaveVsDbgLock)' != 'true' AND Exists($(VsDbgLockDirPath))" />
+  </Target>
+
+  <Target Name="PerformVsDbgInstallIfAcquired">
+    <PropertyGroup>
+      <_ShouldInstallVsDbg Condition="'$(_HaveVsDbgLock)' == 'true' AND '$(Configuration)' == 'Debug' AND !Exists('$(VsDbgExePath)')">true</_ShouldInstallVsDbg>
+      <_ShouldInstallVsDbg Condition="'$(_ShouldInstallVsDbg)' == ''">false</_ShouldInstallVsDbg>
+    </PropertyGroup>
+    <Message Text="[vsdbg] Checking installation conditions..." Importance="normal" Condition="'$(_HaveVsDbgLock)' == 'true'" />
+    <Message Text="[vsdbg] Installation is needed." Importance="normal" Condition="'$(_ShouldInstallVsDbg)' == 'true'" />
+    <Message Text="[vsdbg] Installation skipped: Already installed or not Debug config." Importance="normal" Condition="'$(_HaveVsDbgLock)' == 'true' AND '$(_ShouldInstallVsDbg)' == 'false'" />
+    <Message Text="[vsdbg] Installation skipped: Lock not acquired by this process." Importance="normal" Condition="'$(_HaveVsDbgLock)' == 'false'" />
+    <Message Text="[vsdbg] Installing vsdbg to $(VsDbgInstallDir)..." Importance="high" Condition="'$(_ShouldInstallVsDbg)' == 'true'" />
+    <Exec Command="curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l $(VsDbgInstallDir)" Condition="'$(_ShouldInstallVsDbg)' == 'true'" ContinueOnError="false" />
+    <Message Text="[vsdbg] Installation command finished." Importance="normal" Condition="'$(_ShouldInstallVsDbg)' == 'true'" />
+  </Target>
+
+  <Target Name="ReleaseVsDbgLock">
+      <Message Text="[vsdbg] Releasing lock: $(VsDbgLockDirPath)" Importance="normal" Condition="'$(_HaveVsDbgLock)' == 'true'"/>
+      <RemoveDir Directories="$(VsDbgLockDirPath)" Condition="'$(_HaveVsDbgLock)' == 'true'" ContinueOnError="WarnAndContinue" />
+      <PropertyGroup>
+         <_HaveVsDbgLock>false</_HaveVsDbgLock>
+      </PropertyGroup>
+  </Target>
+
+</Project>
