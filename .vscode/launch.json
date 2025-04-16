@@ -28,24 +28,6 @@
             "sourceFileMap": {
                 "/app": "${workspaceFolder}"
             }
-        },
-        {
-            "name": ".NET Core Attach (Heroku - Default Dyno)",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "2",
-            "pipeTransport": {
-                "pipeProgram": "heroku",
-                "pipeArgs": [
-                    "ps:exec",
-                    "--ssh"
-                ],
-                "debuggerPath": "/app/vsdbg/vsdbg",
-                "pipeCwd": "${workspaceFolder}"
-            },
-            "sourceFileMap": {
-                "/app": "${workspaceFolder}"
-            }
         }
     ]
 }
