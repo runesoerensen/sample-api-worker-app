@@ -10,4 +10,9 @@
     <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.9" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.1.0-preview.9" />
+  </ItemGroup>
+
 </Project>
